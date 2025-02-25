@@ -1,0 +1,37 @@
+{
+    "name": "koramit/laravel-line-bot",
+    "description": "Laravel LINE bot integration",
+    "type": "library",
+    "require": {
+        "php": "^8.3.0",
+        "illuminate/support": "^11.43",
+        "illuminate/database": "^11.43"
+    },
+    "require-dev": {
+        "laravel/pint": "^1.21"
+    },
+    "license": "MIT",
+    "autoload": {
+        "psr-4": {
+            "Koramit\\LaravelLINEBot\\": "src/"
+        }
+    },
+    "authors": [
+        {
+            "name": "koramit",
+            "email": "koramit.p@gmail.com"
+        }
+    ],
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Koramit\\LaravelLINEBot\\LINEBotServiceProvider"
+            ]
+        }
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true,
+    "scripts": {
+        "lint": "pint"
+    }
+}
