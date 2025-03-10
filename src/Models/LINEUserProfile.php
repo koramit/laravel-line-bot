@@ -12,6 +12,34 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Random\RandomException;
 
+/**
+ *
+ *
+ * @property int $id
+ * @property string|null $verify_code
+ * @property Carbon|null $verified_at
+ * @property string $line_user_id
+ * @property AsEncryptedArrayObject|null $profile
+ * @property int|null $user_id
+ * @property Carbon|null $unfollowed_at
+ * @property Carbon|null $created_at
+ * @property Carbon|null $updated_at
+ * @property-read mixed $connected
+ * @method static Builder<static>|LINEUserProfile fromPendingVerifyCode(string $verifyCode)
+ * @method static Builder<static>|LINEUserProfile newModelQuery()
+ * @method static Builder<static>|LINEUserProfile newQuery()
+ * @method static Builder<static>|LINEUserProfile query()
+ * @method static Builder<static>|LINEUserProfile whereCreatedAt($value)
+ * @method static Builder<static>|LINEUserProfile whereId($value)
+ * @method static Builder<static>|LINEUserProfile whereLineUserId($value)
+ * @method static Builder<static>|LINEUserProfile whereProfile($value)
+ * @method static Builder<static>|LINEUserProfile whereUnfollowedAt($value)
+ * @method static Builder<static>|LINEUserProfile whereUpdatedAt($value)
+ * @method static Builder<static>|LINEUserProfile whereUserId($value)
+ * @method static Builder<static>|LINEUserProfile whereVerifiedAt($value)
+ * @method static Builder<static>|LINEUserProfile whereVerifyCode($value)
+ * @mixin \Eloquent
+ */
 class LINEUserProfile extends Model
 {
     protected $table = 'line_user_profiles';
