@@ -9,7 +9,7 @@ use Koramit\LaravelLINEBot\DTOs\LINEEventDto;
 use Koramit\LaravelLINEBot\Models\LINEBotChatLog;
 use Koramit\LaravelLINEBot\Models\LINEUserProfile;
 
-class DisconnectRequested implements ShouldDispatchAfterCommit
+class PostbackReceived implements ShouldDispatchAfterCommit
 {
     use Dispatchable, SerializesModels;
 

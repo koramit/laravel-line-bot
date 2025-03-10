@@ -27,6 +27,8 @@ return new class extends Migration
             $table->id();
             $table->unsignedTinyInteger('type');
             $table->string('webhook_event_id', 26)->nullable();
+            $table->uuid('request_id')->nullable();
+            $table->unsignedSmallInteger('request_status')->default(200);
             $table->unsignedInteger('line_user_profile_id')->index();
             $table->foreign('line_user_profile_id')->references('id')->on('line_user_profiles');
             $table->jsonb('payload');

@@ -4,8 +4,13 @@ namespace Koramit\LaravelLINEBot\Models;
 
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Casts\AsEncryptedArrayObject;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
+use Random\RandomException;
 
 class LINEUserProfile extends Model
 {
@@ -20,10 +25,35 @@ class LINEUserProfile extends Model
         ];
     }
 
+    protected function connected(): Attribute
+    {
+        return Attribute::make(get: fn ($value) => $this->verified_at && $this->user_id);
+    }
+
     public function scopeFromPendingVerifyCode(Builder $query, string $verifyCode): void
     {
         $query->whereNull('verified_at')
             ->where('verify_code', $verifyCode);
+    }
+
+    public function genVerifyCode(): void
+    {
+        $codeLength = (int) config('line.bot_verify_code_length');
+
+        do {
+            try {
+                $randomCode = random_int(0, pow(10, $codeLength) - 1);
+            } catch (RandomException $exception) {
+                Log::error($exception->getMessage());
+                exit(1);
+            }
+            $verifyCode = Str::padLeft($randomCode, $codeLength, '0');
+            if (static::query()->fromPendingVerifyCode($verifyCode)->exists()) {
+                $verifyCode = null;
+            }
+        } while ($verifyCode === null);
+
+        $this->verify_code = $verifyCode;
     }
 
     public function updateProfile(): void
@@ -40,6 +70,12 @@ class LINEUserProfile extends Model
             'status_message' => $profile['statusMessage'] ?? null,
         ];
 
+        $this->save();
+    }
+
+    public function unfollow(): void
+    {
+        $this->unfollowed_at = Carbon::now();
         $this->save();
     }
 }

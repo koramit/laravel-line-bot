@@ -11,6 +11,11 @@
         "laravel/pint": "^1.21"
     },
     "license": "MIT",
+    "keywords": [
+        "laravel",
+        "LINE",
+        "bot"
+    ],
     "autoload": {
         "psr-4": {
             "Koramit\\LaravelLINEBot\\": "src/"

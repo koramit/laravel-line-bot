@@ -18,4 +18,13 @@ class Emoji
             'emojiId' => $this->emojiId,
         ];
     }
+
+    public function toSubstitution(): array
+    {
+        return [
+            'type' => 'emoji',
+            'productId' => $this->productId,
+            'emojiId' => $this->emojiId,
+        ];
+    }
 }

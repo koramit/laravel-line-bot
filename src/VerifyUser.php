@@ -8,6 +8,9 @@ use Koramit\LaravelLINEBot\Models\LINEUserProfile;
 
 class VerifyUser
 {
+    /**
+     * @throws InvalidLINEBotVerifyCode
+     */
     public function __invoke(string $verifyCode, int $userId): LINEUserProfile
     {
         if (! $profile = LINEUserProfile::query()
