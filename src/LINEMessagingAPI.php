@@ -43,7 +43,10 @@ class LINEMessagingAPI
                 'chatId' => $lineUserId,
                 'loadingSeconds' => $loadingSeconds,
             ]);
-        } catch (Exception $e) {
+        } catch (LINEMessagingAPIRequestException $e) {
+            if ($e->getCode() === 202) {
+                return;
+            }
             Log::error($e->getMessage());
         }
     }
