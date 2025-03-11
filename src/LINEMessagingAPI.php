@@ -6,6 +6,7 @@ use Exception;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Koramit\LaravelLINEBot\Exceptions\LINEMessagingAPIRequestException;
 
@@ -37,13 +38,14 @@ class LINEMessagingAPI
 
     public function loadingAnimationStart(string $lineUserId, int $loadingSeconds = 5): void
     {
-        Http::withToken(config('line.bot_channel_access_token'))
-            ->acceptJson()
-            ->timeout(config('line.api_timeout_seconds'))
-            ->post(config('line.bot_loading_animation_endpoint'), [
+        try {
+            $this->makePost(config('line.bot_loading_animation_endpoint'), [
                 'chatId' => $lineUserId,
                 'loadingSeconds' => $loadingSeconds,
             ]);
+        } catch (Exception $e) {
+            Log::error($e->getMessage());
+        }
     }
 
     public function validateMessageObject(LINEMessageObject $message): array
