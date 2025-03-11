@@ -24,7 +24,8 @@ use Random\RandomException;
  * @property Carbon|null $unfollowed_at
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
- * @property-read mixed $connected
+ * @property-read bool $connected
+ * @property-read string|null $display_name
  * @method static Builder<static>|LINEUserProfile fromPendingVerifyCode(string $verifyCode)
  * @method static Builder<static>|LINEUserProfile newModelQuery()
  * @method static Builder<static>|LINEUserProfile newQuery()
@@ -55,7 +56,12 @@ class LINEUserProfile extends Model
 
     protected function connected(): Attribute
     {
-        return Attribute::make(get: fn ($value) => $this->verified_at && $this->user_id);
+        return Attribute::make(get: fn () => $this->verified_at && $this->user_id);
+    }
+
+    protected function displayName(): Attribute
+    {
+        return Attribute::make(get: fn () => $this->profile['display_name'] ?? null);
     }
 
     public function scopeFromPendingVerifyCode(Builder $query, string $verifyCode): void
