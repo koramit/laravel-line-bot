@@ -2,6 +2,7 @@
 
 namespace Koramit\LaravelLINEBot\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Casts\AsArrayObject;
 use Illuminate\Database\Eloquent\Model;
 use Koramit\LaravelLINEBot\Enums\LINEEventType;
@@ -18,6 +19,7 @@ use Koramit\LaravelLINEBot\Enums\LINEEventType;
  * @property \Illuminate\Support\Carbon|null $created_at
  * @property \Illuminate\Support\Carbon|null $updated_at
  *
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|LINEBotChatLog fromMessageId(string $messageId, ?string $lineProfileId = null)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|LINEBotChatLog newModelQuery()
  * @method static \Illuminate\Database\Eloquent\Builder<static>|LINEBotChatLog newQuery()
  * @method static \Illuminate\Database\Eloquent\Builder<static>|LINEBotChatLog query()
@@ -45,5 +47,12 @@ class LINEBotChatLog extends Model
             'payload' => AsArrayObject::class,
             'processed_at' => 'datetime',
         ];
+    }
+
+    public function scopeFromMessageId(Builder $query, string $messageId, ?string $lineProfileId = null): void
+    {
+        $query->where('type', LINEEventType::MESSAGE)
+            ->where('payload->message->id', $messageId)
+            ->when($lineProfileId, fn ($q) => $q->where('line_user_profile_id', $lineProfileId));
     }
 }
