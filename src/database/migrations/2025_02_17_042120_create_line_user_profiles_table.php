@@ -17,7 +17,7 @@ return new class extends Migration
             $table->dateTime('verified_at')->nullable();
             $table->string('line_user_id', 33)->unique();
             $table->string('profile', 1024)->nullable();
-            $table->unsignedInteger('user_id')->nullable()->index();
+            $table->unsignedBigInteger('user_id')->nullable()->index();
             $table->foreign('user_id')->references('id')->on('users');
             $table->dateTime('unfollowed_at')->nullable();
             $table->timestamps();
@@ -29,7 +29,7 @@ return new class extends Migration
             $table->string('webhook_event_id', 26)->nullable();
             $table->uuid('request_id')->nullable();
             $table->unsignedSmallInteger('request_status')->default(200);
-            $table->unsignedInteger('line_user_profile_id')->index();
+            $table->unsignedBigInteger('line_user_profile_id')->index();
             $table->foreign('line_user_profile_id')->references('id')->on('line_user_profiles');
             $table->jsonb('payload');
             $table->dateTime('processed_at')->nullable();

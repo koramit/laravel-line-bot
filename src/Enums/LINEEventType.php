@@ -64,4 +64,29 @@ enum LINEEventType: int
             'membership' => self::MEMBERSHIP,
         };
     }
+
+    public static function withoutReplyToken(): array
+    {
+        return [
+            self::PUSH,
+            self::REPLY,
+            self::COMMAND,
+            self::UNSEND,
+            self::UNFOLLOW,
+            self::LEAVE,
+            self::MEMBER_LEAVE,
+        ];
+    }
+
+    public static function withReplyToken(): array
+    {
+        $cases = [];
+        foreach (LINEEventType::cases() as $case) {
+            if (! in_array($case, LINEEventType::withoutReplyToken())) {
+                $cases[] = $case;
+            }
+        }
+
+        return $cases;
+    }
 }
