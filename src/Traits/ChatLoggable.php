@@ -32,7 +32,7 @@ trait ChatLoggable
         LINEBotChatLog::query()
             ->create([
                 'line_user_profile_id' => $profile->id,
-                'type' => LINEEventType::REPLY,
+                'type' => LINEEventType::PUSH,
                 'request_id' => $responseJson['request_id'] ?? null,
                 'request_status' => $responseJson['request_status'] ?? null,
                 'processed_at' => Carbon::now(),
