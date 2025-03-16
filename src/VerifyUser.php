@@ -25,6 +25,7 @@ class VerifyUser
             ->get() as $anotherProfile) {
             $anotherProfile->verified_at = null;
             $anotherProfile->verify_code = null;
+            $anotherProfile->user_id = null;
             $anotherProfile->save();
         }
 
