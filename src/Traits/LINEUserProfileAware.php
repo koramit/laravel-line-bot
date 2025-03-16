@@ -2,13 +2,13 @@
 
 namespace Koramit\LaravelLINEBot\Traits;
 
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Koramit\LaravelLINEBot\Models\LINEUserProfile;
 
 trait LINEUserProfileAware
 {
-    public function lineProfile(): BelongsTo
+    public function lineProfile(): HasOne
     {
-        return $this->belongsTo(LINEUserProfile::class);
+        return $this->HasOne(LINEUserProfile::class);
     }
 }
