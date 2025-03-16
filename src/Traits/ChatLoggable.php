@@ -6,6 +6,7 @@ use Illuminate\Support\Carbon;
 use Koramit\LaravelLINEBot\Enums\LINEEventType;
 use Koramit\LaravelLINEBot\LINEMessageObject;
 use Koramit\LaravelLINEBot\Models\LINEBotChatLog;
+use Koramit\LaravelLINEBot\Models\LINEUserProfile;
 
 trait ChatLoggable
 {
@@ -13,13 +14,6 @@ trait ChatLoggable
     {
         $log->processed_at = Carbon::now();
         $log->save();
-
-        $payload = $messageObject->get();
-        if ($responseJson && ($responseJson['sentMessages'] ?? false)) {
-            foreach ($responseJson['sentMessages'] as $index => $sentMessage) {
-                $payload[$index]['sentMessage'] = $sentMessage;
-            }
-        }
 
         LINEBotChatLog::query()
             ->create([
@@ -29,7 +23,32 @@ trait ChatLoggable
                 'request_id' => $responseJson['request_id'] ?? null,
                 'request_status' => $responseJson['request_status'] ?? null,
                 'processed_at' => Carbon::now(),
-                'payload' => $payload,
+                'payload' => $this->mergeRequestResponseToSentMessages($messageObject, $responseJson),
             ]);
+    }
+
+    protected function logPush(LINEUserProfile $profile, LINEMessageObject $messageObject, ?array $responseJson = null): void
+    {
+        LINEBotChatLog::query()
+            ->create([
+                'line_user_profile_id' => $profile->id,
+                'type' => LINEEventType::REPLY,
+                'request_id' => $responseJson['request_id'] ?? null,
+                'request_status' => $responseJson['request_status'] ?? null,
+                'processed_at' => Carbon::now(),
+                'payload' => $this->mergeRequestResponseToSentMessages($messageObject, $responseJson),
+            ]);
+    }
+
+    protected function mergeRequestResponseToSentMessages(LINEMessageObject $messageObject, ?array $responseJson = null): array
+    {
+        $payload = $messageObject->get();
+        if ($responseJson && ($responseJson['sentMessages'] ?? false)) {
+            foreach ($responseJson['sentMessages'] as $index => $sentMessage) {
+                $payload[$index]['sentMessage'] = $sentMessage;
+            }
+        }
+
+        return $payload;
     }
 }
