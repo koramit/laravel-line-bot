@@ -5,21 +5,25 @@ namespace Koramit\LaravelLINEBot;
 use Exception;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\PendingRequest;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Koramit\LaravelLINEBot\DTOs\LINEEventDto;
+use Koramit\LaravelLINEBot\Enums\LINEEventType;
 use Koramit\LaravelLINEBot\Exceptions\LINEMessagingAPIRequestException;
+use Koramit\LaravelLINEBot\Models\LINEBotChatLog;
+use Koramit\LaravelLINEBot\Models\LINEUserProfile;
 
 class LINEMessagingAPI
 {
     /**
      * @throws LINEMessagingAPIRequestException
      */
-    public function reply(string $replyToken, LINEMessageObject $messages, bool $notificationDisabled = false): array
+    public function push(string $lineUserId, LINEMessageObject $messages, bool $notificationDisabled = false): array
     {
-        return $this->makePost(config('line.bot_reply_endpoint'), [
-            'replyToken' => $replyToken,
+        return $this->makePost(config('line.bot_push_endpoint'), [
+            'to' => $lineUserId,
             'messages' => $messages->get(),
             'notificationDisabled' => $notificationDisabled,
         ]);
@@ -28,10 +32,10 @@ class LINEMessagingAPI
     /**
      * @throws LINEMessagingAPIRequestException
      */
-    public function push(string $lineUserId, LINEMessageObject $messages, bool $notificationDisabled = false): array
+    public function reply(string $replyToken, LINEMessageObject $messages, bool $notificationDisabled = false): array
     {
-        return $this->makePost(config('line.bot_push_endpoint'), [
-            'to' => $lineUserId,
+        return $this->makePost(config('line.bot_reply_endpoint'), [
+            'replyToken' => $replyToken,
             'messages' => $messages->get(),
             'notificationDisabled' => $notificationDisabled,
         ]);
@@ -129,5 +133,62 @@ class LINEMessagingAPI
         }
 
         return $data;
+    }
+
+    public function logPush(LINEUserProfile $profile, LINEMessageObject $messageObject, ?array $responseJson = null): void
+    {
+        LINEBotChatLog::query()
+            ->create([
+                'line_user_profile_id' => $profile->id,
+                'type' => LINEEventType::PUSH,
+                'request_id' => $responseJson['request_id'] ?? null,
+                'request_status' => $responseJson['request_status'] ?? null,
+                'processed_at' => Carbon::now(),
+                'payload' => $this->mergeRequestResponseToSentMessages($messageObject, $responseJson),
+            ]);
+    }
+
+    public function logReply(LINEBotChatLog $log, LINEMessageObject $messageObject, ?array $responseJson = null): void
+    {
+        $log->processed_at = Carbon::now();
+        $log->save();
+
+        LINEBotChatLog::query()
+            ->create([
+                'line_user_profile_id' => $log->line_user_profile_id,
+                'type' => LINEEventType::REPLY,
+                'webhook_event_id' => $log->webhook_event_id,
+                'request_id' => $responseJson['request_id'] ?? null,
+                'request_status' => $responseJson['request_status'] ?? null,
+                'processed_at' => Carbon::now(),
+                'payload' => $this->mergeRequestResponseToSentMessages($messageObject, $responseJson),
+            ]);
+    }
+
+    public function logReplyOrPush(LINEUserProfile $profile, LINEMessageObject $messageObject, ?array $responseJson = null): void
+    {
+        LINEBotChatLog::query()
+            ->create([
+                'line_user_profile_id' => $profile->id,
+                'type' => LINEEventType::REPLY,
+                'request_id' => null,
+                'request_status' => 400,
+                'processed_at' => Carbon::now(),
+                'payload' => $messageObject->get(),
+            ]);
+
+        $this->logPush($profile, $messageObject, $responseJson);
+    }
+
+    protected function mergeRequestResponseToSentMessages(LINEMessageObject $messageObject, ?array $responseJson = null): array
+    {
+        $payload = $messageObject->get();
+        if ($responseJson && ($responseJson['sentMessages'] ?? false)) {
+            foreach ($responseJson['sentMessages'] as $index => $sentMessage) {
+                $payload[$index]['sentMessage'] = $sentMessage;
+            }
+        }
+
+        return $payload;
     }
 }
