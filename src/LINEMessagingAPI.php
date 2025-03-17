@@ -8,6 +8,7 @@ use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
+use Koramit\LaravelLINEBot\DTOs\LINEEventDto;
 use Koramit\LaravelLINEBot\Exceptions\LINEMessagingAPIRequestException;
 
 class LINEMessagingAPI
@@ -34,6 +35,30 @@ class LINEMessagingAPI
             'messages' => $messages->get(),
             'notificationDisabled' => $notificationDisabled,
         ]);
+    }
+
+    /**
+     * @throws LINEMessagingAPIRequestException
+     */
+    public function replyOrPush(LINEEventDto $eventDto, LINEMessageObject $messages, bool $notificationDisabled = false): array
+    {
+        try {
+            $data = $this->reply($eventDto->replyToken, $messages, $notificationDisabled);
+            $data['replyOrPush'] = 'reply';
+
+            return $data;
+        } catch (LINEMessagingAPIRequestException $e) {
+            if (! ($e->getCode() === 400) || ! ($e->getMessage() === 'Invalid reply token')) {
+                throw $e;
+            }
+
+            Log::notice('Invalid reply token webhook event id = {webhookEventId}', ['webhookEventId' => $eventDto->webhookEventId]);
+
+            $data = $this->push($eventDto->userId, $messages, $notificationDisabled);
+            $data['replyOrPush'] = 'push';
+
+            return $data;
+        }
     }
 
     public function loadingAnimationStart(string $lineUserId, int $loadingSeconds = 5): void

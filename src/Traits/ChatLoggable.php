@@ -40,6 +40,21 @@ trait ChatLoggable
             ]);
     }
 
+    protected function logReplyOrPush(LINEUserProfile $profile, LINEMessageObject $messageObject, ?array $responseJson = null): void
+    {
+        LINEBotChatLog::query()
+            ->create([
+                'line_user_profile_id' => $profile->id,
+                'type' => LINEEventType::REPLY,
+                'request_id' => null,
+                'request_status' => 400,
+                'processed_at' => Carbon::now(),
+                'payload' => $messageObject->get(),
+            ]);
+
+        $this->logPush($profile, $messageObject, $responseJson);
+    }
+
     protected function mergeRequestResponseToSentMessages(LINEMessageObject $messageObject, ?array $responseJson = null): array
     {
         $payload = $messageObject->get();
