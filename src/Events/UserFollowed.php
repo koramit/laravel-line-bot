@@ -13,9 +13,23 @@ class UserFollowed implements ShouldDispatchAfterCommit
 {
     use Dispatchable, SerializesModels;
 
+    public LINEEventDto $dto;
+
+    public LINEUserProfile $profile;
+
+    public LINEBotChatLog $log;
+
     public function __construct(
-        public LINEEventDto $dto,
-        public LINEUserProfile $profile,
-        public LINEBotChatLog $log
-    ) {}
+        LINEEventDto $dto,
+        LINEUserProfile $profile,
+        LINEBotChatLog $log
+    ) {
+        if ($dto->isUnblocked === true) {
+            $profile->update(['unfollowed_at' => null]);
+        }
+
+        $this->dto = $dto;
+        $this->profile = $profile;
+        $this->log = $log;
+    }
 }

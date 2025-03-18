@@ -35,9 +35,7 @@ class HandleWebhook
         foreach ($payload['events'] as $event) {
             $dto = new LINEEventDto($event);
 
-            $profile = LINEUserProfile::query()
-                ->whereLineUserId($dto->userId)
-                ->firstOrCreate(['line_user_id' => $dto->userId]);
+            $profile = LINEUserProfile::query()->firstOrCreate(['line_user_id' => $dto->userId]);
 
             if (! $profile->verify_code) {
                 $profile->genVerifyCode();
