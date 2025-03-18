@@ -92,6 +92,10 @@ class LINEUserProfile extends Model
 
     public function updateProfile(): void
     {
+        if ($this->unfollowed_at) {
+            return;
+        }
+
         $response = Http::withToken(config('line.bot_channel_access_token'))
             ->get(config('line.bot_get_user_profile_endpoint').$this->line_user_id);
 
@@ -109,7 +113,6 @@ class LINEUserProfile extends Model
 
     public function unfollow(): void
     {
-        $this->unfollowed_at = Carbon::now();
-        $this->save();
+        $this->touch('unfollowed_at');
     }
 }
