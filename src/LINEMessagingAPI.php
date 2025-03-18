@@ -5,7 +5,6 @@ namespace Koramit\LaravelLINEBot;
 use Exception;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\PendingRequest;
-use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
@@ -13,7 +12,6 @@ use Koramit\LaravelLINEBot\DTOs\LINEEventDto;
 use Koramit\LaravelLINEBot\Enums\LINEEventType;
 use Koramit\LaravelLINEBot\Exceptions\LINEMessagingAPIRequestException;
 use Koramit\LaravelLINEBot\Models\LINEBotChatLog;
-use Koramit\LaravelLINEBot\Models\LINEUserProfile;
 
 class LINEMessagingAPI
 {
@@ -48,7 +46,7 @@ class LINEMessagingAPI
     {
         try {
             $data = $this->reply($eventDto->replyToken, $messages, $notificationDisabled);
-            $data['replyOrPush'] = 'reply';
+            $data['sent_by'] = 'reply';
 
             return $data;
         } catch (LINEMessagingAPIRequestException $e) {
@@ -59,7 +57,7 @@ class LINEMessagingAPI
             Log::notice('Invalid reply token webhook event id = {webhookEventId}', ['webhookEventId' => $eventDto->webhookEventId]);
 
             $data = $this->push($eventDto->userId, $messages, $notificationDisabled);
-            $data['replyOrPush'] = 'push';
+            $data['sent_by'] = 'push';
 
             return $data;
         }
@@ -135,23 +133,22 @@ class LINEMessagingAPI
         return $data;
     }
 
-    public function logPush(LINEUserProfile $profile, LINEMessageObject $messageObject, ?array $responseJson = null): void
+    public function logPush(string $lineUserProfileId, LINEMessageObject $messageObject, array $responseJson): void
     {
         LINEBotChatLog::query()
             ->create([
-                'line_user_profile_id' => $profile->id,
+                'line_user_profile_id' => $lineUserProfileId,
                 'type' => LINEEventType::PUSH,
                 'request_id' => $responseJson['request_id'] ?? null,
-                'request_status' => $responseJson['request_status'] ?? null,
-                'processed_at' => Carbon::now(),
+                'request_status' => $responseJson['request_status'],
+                'processed_at' => now(),
                 'payload' => $this->mergeRequestResponseToSentMessages($messageObject, $responseJson),
             ]);
     }
 
-    public function logReply(LINEBotChatLog $log, LINEMessageObject $messageObject, ?array $responseJson = null): void
+    public function logReply(LINEBotChatLog $log, LINEMessageObject $messageObject, array $responseJson): void
     {
-        $log->processed_at = Carbon::now();
-        $log->save();
+        $log->touch('processed_at');
 
         LINEBotChatLog::query()
             ->create([
@@ -159,25 +156,32 @@ class LINEMessagingAPI
                 'type' => LINEEventType::REPLY,
                 'webhook_event_id' => $log->webhook_event_id,
                 'request_id' => $responseJson['request_id'] ?? null,
-                'request_status' => $responseJson['request_status'] ?? null,
-                'processed_at' => Carbon::now(),
+                'request_status' => $responseJson['request_status'],
+                'processed_at' => now(),
                 'payload' => $this->mergeRequestResponseToSentMessages($messageObject, $responseJson),
             ]);
     }
 
-    public function logReplyOrPush(LINEUserProfile $profile, LINEMessageObject $messageObject, ?array $responseJson = null): void
+    public function logReplyOrPush(LINEBotChatLog $log, string $lineUserProfileId, LINEMessageObject $messageObject, array $responseJson): void
     {
+        if ($responseJson['sent_by'] === 'reply') {
+            $this->logReply($log, $messageObject, $responseJson);
+
+            return;
+        }
+
         LINEBotChatLog::query()
             ->create([
-                'line_user_profile_id' => $profile->id,
+                'line_user_profile_id' => $lineUserProfileId,
                 'type' => LINEEventType::REPLY,
+                'webhook_event_id' => $log->webhook_event_id,
                 'request_id' => null,
                 'request_status' => 400,
-                'processed_at' => Carbon::now(),
+                'processed_at' => now(),
                 'payload' => $messageObject->get(),
             ]);
 
-        $this->logPush($profile, $messageObject, $responseJson);
+        $this->logPush($lineUserProfileId, $messageObject, $responseJson);
     }
 
     protected function mergeRequestResponseToSentMessages(LINEMessageObject $messageObject, ?array $responseJson = null): array
