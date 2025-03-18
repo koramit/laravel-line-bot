@@ -47,15 +47,15 @@ class LINEMessagingAPI
     /**
      * @throws LINEMessagingAPIRequestException
      */
-    public function replyOrPush(LINEEventDto $eventDto, LINEMessageObject $messages, bool $notificationDisabled = false): LINEMessagingAPIResponseDto
+    public function replyOrPush(LINEEventDto $lineEventDto, LINEMessageObject $messages, bool $notificationDisabled = false): LINEMessagingAPIResponseDto
     {
-        $response = $this->reply($eventDto->replyToken, $messages, $notificationDisabled);
+        $response = $this->reply($lineEventDto->replyToken, $messages, $notificationDisabled);
         if (! ($response->status === 400) || ! ($response->data['message'] === 'Invalid reply token')) {
             return $response;
         }
-        Log::notice('Invalid reply token webhook event id = {webhookEventId}', ['webhookEventId' => $eventDto->webhookEventId]);
+        Log::notice('Invalid reply token webhook event id = {webhookEventId}', ['webhookEventId' => $lineEventDto->webhookEventId]);
 
-        return $this->push($eventDto->userId, $messages, $notificationDisabled);
+        return $this->push($lineEventDto->userId, $messages, $notificationDisabled);
     }
 
     /**
@@ -149,7 +149,7 @@ class LINEMessagingAPI
             ]);
     }
 
-    public function logReplyOrPush(LINEBotChatLog $log, string $lineUserProfileId, LINEMessageObject $messageObject, LINEMessagingAPIResponseDto $response): void
+    public function logReplyOrPush(LINEBotChatLog $log, LINEMessageObject $messageObject, LINEMessagingAPIResponseDto $response): void
     {
         if ($this->lastCall === 'reply') {
             $this->logReply($log, $messageObject, $response);
@@ -160,7 +160,7 @@ class LINEMessagingAPI
 
         LINEBotChatLog::query()
             ->create([
-                'line_user_profile_id' => $lineUserProfileId,
+                'line_user_profile_id' => $log->line_user_profile_id,
                 'type' => LINEEventType::REPLY,
                 'webhook_event_id' => $log->webhook_event_id,
                 'request_id' => null,
@@ -169,7 +169,7 @@ class LINEMessagingAPI
                 'payload' => $messageObject->get(),
             ]);
 
-        $this->logPush($lineUserProfileId, $messageObject, $response);
+        $this->logPush($log->line_user_profile_id, $messageObject, $response);
     }
 
     protected function mergeRequestResponseToSentMessages(LINEMessageObject $messageObject, LINEMessagingAPIResponseDto $response): array
