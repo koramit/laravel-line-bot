@@ -9,16 +9,19 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Koramit\LaravelLINEBot\DTOs\LINEEventDto;
+use Koramit\LaravelLINEBot\DTOs\LINEMessagingAPIResponseDto;
 use Koramit\LaravelLINEBot\Enums\LINEEventType;
 use Koramit\LaravelLINEBot\Exceptions\LINEMessagingAPIRequestException;
 use Koramit\LaravelLINEBot\Models\LINEBotChatLog;
 
 class LINEMessagingAPI
 {
+    protected string $lastCall = '';
+
     /**
      * @throws LINEMessagingAPIRequestException
      */
-    public function push(string $lineUserId, LINEMessageObject $messages, bool $notificationDisabled = false): array
+    public function push(string $lineUserId, LINEMessageObject $messages, bool $notificationDisabled = false): LINEMessagingAPIResponseDto
     {
         return $this->makePost(config('line.bot_push_endpoint'), [
             'to' => $lineUserId,
@@ -30,8 +33,10 @@ class LINEMessagingAPI
     /**
      * @throws LINEMessagingAPIRequestException
      */
-    public function reply(string $replyToken, LINEMessageObject $messages, bool $notificationDisabled = false): array
+    public function reply(string $replyToken, LINEMessageObject $messages, bool $notificationDisabled = false): LINEMessagingAPIResponseDto
     {
+        $this->lastCall = 'reply';
+
         return $this->makePost(config('line.bot_reply_endpoint'), [
             'replyToken' => $replyToken,
             'messages' => $messages->get(),
@@ -42,68 +47,55 @@ class LINEMessagingAPI
     /**
      * @throws LINEMessagingAPIRequestException
      */
-    public function replyOrPush(LINEEventDto $eventDto, LINEMessageObject $messages, bool $notificationDisabled = false): array
+    public function replyOrPush(LINEEventDto $eventDto, LINEMessageObject $messages, bool $notificationDisabled = false): LINEMessagingAPIResponseDto
     {
-        try {
-            $data = $this->reply($eventDto->replyToken, $messages, $notificationDisabled);
-            $data['sent_by'] = 'reply';
-
-            return $data;
-        } catch (LINEMessagingAPIRequestException $e) {
-            if (! ($e->getCode() === 400) || ! ($e->getMessage() === 'Invalid reply token')) {
-                throw $e;
-            }
-
-            Log::notice('Invalid reply token webhook event id = {webhookEventId}', ['webhookEventId' => $eventDto->webhookEventId]);
-
-            $data = $this->push($eventDto->userId, $messages, $notificationDisabled);
-            $data['sent_by'] = 'push';
-
-            return $data;
+        $response = $this->reply($eventDto->replyToken, $messages, $notificationDisabled);
+        if (! ($response->status === 400) || ! ($response->data['message'] === 'Invalid reply token')) {
+            return $response;
         }
+        Log::notice('Invalid reply token webhook event id = {webhookEventId}', ['webhookEventId' => $eventDto->webhookEventId]);
+
+        return $this->push($eventDto->userId, $messages, $notificationDisabled);
     }
 
+    /**
+     * @throws LINEMessagingAPIRequestException
+     */
     public function loadingAnimationStart(string $lineUserId, int $loadingSeconds = 5): void
     {
-        try {
-            $this->makePost(config('line.bot_loading_animation_endpoint'), [
-                'chatId' => $lineUserId,
-                'loadingSeconds' => $loadingSeconds,
-            ]);
-        } catch (LINEMessagingAPIRequestException $e) {
-            if ($e->getCode() === 202) {
-                return;
-            }
-            Log::error($e->getMessage());
-        }
+        $this->makePost(config('line.bot_loading_animation_endpoint'), [
+            'chatId' => $lineUserId,
+            'loadingSeconds' => $loadingSeconds,
+        ]);
     }
 
     public function validateMessageObject(LINEMessageObject $message): array
     {
         try {
-            $this->makePost(config('line.validate_message_object_endpoint'), [
+            $response = $this->makePost(config('line.validate_message_object_endpoint'), [
                 'messages' => $message->get(),
             ]);
         } catch (LINEMessagingAPIRequestException $e) {
             return $e->body;
         }
 
-        return [];
+        return $response->data;
     }
 
     /**
      * @throws LINEMessagingAPIRequestException
      */
-    protected function makePost(string $endpoint, array $body): array
+    protected function makePost(string $endpoint, array $body): LINEMessagingAPIResponseDto
     {
         $retryKey = Str::uuid()->toString();
         try {
             $response = Http::withToken(config('line.bot_channel_access_token'))
                 ->acceptJson()
+                ->connectTimeout(config('line.api_connect_timeout_seconds'))
                 ->timeout(config('line.api_timeout_seconds'))
                 ->retry(
                     config('line.api_retry_times'),
-                    200,
+                    config('line.api_retry_delay_milliseconds'),
                     function (Exception $exception, PendingRequest $request) use ($endpoint, $retryKey) {
                         if ($exception->getCode() === 500) {
                             if ($endpoint !== config('line.bot_reply_endpoint')) {
@@ -113,40 +105,35 @@ class LINEMessagingAPI
                             return true;
                         }
 
-                        return $exception instanceof ConnectionException
-                            && str_contains($exception->getMessage(), 'timed out after');
+                        return $exception instanceof ConnectionException;
                     },
-                    throw: false)
+                    false)
                 ->post($endpoint, $body);
         } catch (Exception $e) {
             throw new LINEMessagingAPIRequestException($e->getMessage(), $e->getCode(), []);
         }
 
-        $data = $response->json();
-        $data['request_id'] = $response->header('X-Line-Request-Id');
-        $data['request_status'] = $response->status();
-
-        if ($response->status() !== 200) {
-            throw new LINEMessagingAPIRequestException($data['message'] ?? 'LINE API request error', $response->status(), $data);
-        }
-
-        return $data;
+        return new LINEMessagingAPIResponseDto(
+            $response->status(),
+            $response->header('X-Line-Request-Id'),
+            $response->json()
+        );
     }
 
-    public function logPush(string $lineUserProfileId, LINEMessageObject $messageObject, array $responseJson): void
+    public function logPush(string $lineUserProfileId, LINEMessageObject $messageObject, LINEMessagingAPIResponseDto $response): void
     {
         LINEBotChatLog::query()
             ->create([
                 'line_user_profile_id' => $lineUserProfileId,
                 'type' => LINEEventType::PUSH,
-                'request_id' => $responseJson['request_id'] ?? null,
-                'request_status' => $responseJson['request_status'],
+                'request_id' => $response->lineRequestId,
+                'request_status' => $response->status,
                 'processed_at' => now(),
-                'payload' => $this->mergeRequestResponseToSentMessages($messageObject, $responseJson),
+                'payload' => $this->mergeRequestResponseToSentMessages($messageObject, $response),
             ]);
     }
 
-    public function logReply(LINEBotChatLog $log, LINEMessageObject $messageObject, array $responseJson): void
+    public function logReply(LINEBotChatLog $log, LINEMessageObject $messageObject, LINEMessagingAPIResponseDto $response): void
     {
         $log->touch('processed_at');
 
@@ -155,17 +142,18 @@ class LINEMessagingAPI
                 'line_user_profile_id' => $log->line_user_profile_id,
                 'type' => LINEEventType::REPLY,
                 'webhook_event_id' => $log->webhook_event_id,
-                'request_id' => $responseJson['request_id'] ?? null,
-                'request_status' => $responseJson['request_status'],
+                'request_id' => $response->lineRequestId,
+                'request_status' => $response->status,
                 'processed_at' => now(),
-                'payload' => $this->mergeRequestResponseToSentMessages($messageObject, $responseJson),
+                'payload' => $this->mergeRequestResponseToSentMessages($messageObject, $response),
             ]);
     }
 
-    public function logReplyOrPush(LINEBotChatLog $log, string $lineUserProfileId, LINEMessageObject $messageObject, array $responseJson): void
+    public function logReplyOrPush(LINEBotChatLog $log, string $lineUserProfileId, LINEMessageObject $messageObject, LINEMessagingAPIResponseDto $response): void
     {
-        if ($responseJson['sent_by'] === 'reply') {
-            $this->logReply($log, $messageObject, $responseJson);
+        if ($this->lastCall === 'reply') {
+            $this->logReply($log, $messageObject, $response);
+            $this->lastCall = '';
 
             return;
         }
@@ -181,16 +169,14 @@ class LINEMessagingAPI
                 'payload' => $messageObject->get(),
             ]);
 
-        $this->logPush($lineUserProfileId, $messageObject, $responseJson);
+        $this->logPush($lineUserProfileId, $messageObject, $response);
     }
 
-    protected function mergeRequestResponseToSentMessages(LINEMessageObject $messageObject, ?array $responseJson = null): array
+    protected function mergeRequestResponseToSentMessages(LINEMessageObject $messageObject, LINEMessagingAPIResponseDto $response): array
     {
         $payload = $messageObject->get();
-        if ($responseJson && ($responseJson['sentMessages'] ?? false)) {
-            foreach ($responseJson['sentMessages'] as $index => $sentMessage) {
-                $payload[$index]['sentMessage'] = $sentMessage;
-            }
+        foreach ($response->data['sentMessages'] as $index => $sentMessage) {
+            $payload[$index]['sentMessage'] = $sentMessage;
         }
 
         return $payload;

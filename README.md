@@ -21,6 +21,7 @@ LINE_BOT_REPLY_ENDPOINT=https://api.line.me/v2/bot/message/reply
 LINE_BOT_LOADING_ANIMATION_ENDPOINT=https://api.line.me/v2/bot/chat/loading/start
 LINE_BOT_GET_USER_PROFILE_ENDPOINT=https://api.line.me/v2/bot/profile/
 LINE_VALIDATE_MESSAGE_OBJECT_ENDPOINT=https://api.line.me/v2/bot/message/validate/push
-LINE_API_TIMEOUT_SECONDS=2
+LINE_API_TIMEOUT_SECONDS=10
 LINE_API_RETRY_TIMES=3
+LINE_API_RETRY_DELAY_MILLISECONDS=200
 ```

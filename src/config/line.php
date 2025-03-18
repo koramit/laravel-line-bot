@@ -12,6 +12,8 @@ return [
     'bot_loading_animation_endpoint' => env('LINE_BOT_LOADING_ANIMATION_ENDPOINT', 'https://api.line.me/v2/bot/chat/loading/start'),
     'bot_get_user_profile_endpoint' => env('LINE_BOT_GET_USER_PROFILE_ENDPOINT', 'https://api.line.me/v2/bot/profile/'),
     'validate_message_object_endpoint' => env('LINE_VALIDATE_MESSAGE_OBJECT_ENDPOINT', 'https://api.line.me/v2/bot/message/validate/push'),
-    'api_timeout_seconds' => env('LINE_API_TIMEOUT_SECONDS', 2),
+    'api_timeout_seconds' => env('LINE_API_TIMEOUT_SECONDS', 10),
+    'api_connect_timeout_seconds' => env('LINE_API_CONNECT_TIMEOUT_SECONDS', 2),
     'api_retry_times' => env('LINE_API_RETRY_TIMES', 3),
+    'api_retry_delay_milliseconds' => env('LINE_API_RETRY_DELAY_MILLISECONDS', 200),
 ];
