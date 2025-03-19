@@ -13,6 +13,7 @@ use Koramit\LaravelLINEBot\DTOs\LINEMessagingAPIResponseDto;
 use Koramit\LaravelLINEBot\Enums\LINEEventType;
 use Koramit\LaravelLINEBot\Exceptions\LINEMessagingAPIRequestException;
 use Koramit\LaravelLINEBot\Models\LINEBotChatLog;
+use Koramit\LaravelLINEBot\Models\LINEUserProfile;
 
 class LINEMessagingAPI
 {
@@ -120,11 +121,12 @@ class LINEMessagingAPI
         );
     }
 
-    public function logPush(string $lineUserProfileId, LINEMessageObject $messageObject, LINEMessagingAPIResponseDto $response): void
+    public function logPush(LINEUserProfile $profile, LINEMessageObject $messageObject, LINEMessagingAPIResponseDto $response): void
     {
         LINEBotChatLog::query()
             ->create([
-                'line_user_profile_id' => $lineUserProfileId,
+                'line_user_profile_id' => $profile->id,
+                'user_id' => $profile->user_id,
                 'type' => LINEEventType::PUSH,
                 'request_id' => $response->lineRequestId,
                 'request_status' => $response->status,
@@ -133,15 +135,14 @@ class LINEMessagingAPI
             ]);
     }
 
-    public function logReply(LINEBotChatLog $log, LINEMessageObject $messageObject, LINEMessagingAPIResponseDto $response): void
+    public function logReply(string $webhookEventId, LINEUserProfile $profile, LINEMessageObject $messageObject, LINEMessagingAPIResponseDto $response): void
     {
-        $log->touch('processed_at');
-
         LINEBotChatLog::query()
             ->create([
-                'line_user_profile_id' => $log->line_user_profile_id,
+                'line_user_profile_id' => $profile->id,
+                'user_id' => $profile->user_id,
                 'type' => LINEEventType::REPLY,
-                'webhook_event_id' => $log->webhook_event_id,
+                'webhook_event_id' => $webhookEventId,
                 'request_id' => $response->lineRequestId,
                 'request_status' => $response->status,
                 'processed_at' => now(),
@@ -149,10 +150,10 @@ class LINEMessagingAPI
             ]);
     }
 
-    public function logReplyOrPush(LINEBotChatLog $log, LINEMessageObject $messageObject, LINEMessagingAPIResponseDto $response): void
+    public function logReplyOrPush(string $webhookEventId, LINEUserProfile $profile, LINEMessageObject $messageObject, LINEMessagingAPIResponseDto $response): void
     {
         if ($this->lastCall === 'reply') {
-            $this->logReply($log, $messageObject, $response);
+            $this->logReply($webhookEventId, $profile, $messageObject, $response);
             $this->lastCall = '';
 
             return;
@@ -160,16 +161,17 @@ class LINEMessagingAPI
 
         LINEBotChatLog::query()
             ->create([
-                'line_user_profile_id' => $log->line_user_profile_id,
+                'line_user_profile_id' => $profile->id,
+                'user_id' => $profile->user_id,
                 'type' => LINEEventType::REPLY,
-                'webhook_event_id' => $log->webhook_event_id,
+                'webhook_event_id' => $webhookEventId,
                 'request_id' => null,
                 'request_status' => 400,
                 'processed_at' => now(),
                 'payload' => $messageObject->get(),
             ]);
 
-        $this->logPush($log->line_user_profile_id, $messageObject, $response);
+        $this->logPush($profile, $messageObject, $response);
     }
 
     protected function mergeRequestResponseToSentMessages(LINEMessageObject $messageObject, LINEMessagingAPIResponseDto $response): array

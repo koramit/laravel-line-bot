@@ -31,6 +31,8 @@ return new class extends Migration
             $table->unsignedSmallInteger('request_status')->default(200);
             $table->unsignedBigInteger('line_user_profile_id')->index();
             $table->foreign('line_user_profile_id')->references('id')->on('line_user_profiles');
+            $table->unsignedBigInteger('user_id')->nullable()->index();
+            $table->foreign('user_id')->references('id')->on('users');
             $table->jsonb('payload');
             $table->dateTime('processed_at')->nullable();
             $table->timestamps();
