@@ -5,9 +5,12 @@ namespace Koramit\LaravelLINEBot\Models;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Casts\AsArrayObject;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Koramit\LaravelLINEBot\Enums\LINEEventType;
 
 /**
+ * 
+ *
  * @property int $id
  * @property LINEEventType $type
  * @property string|null $webhook_event_id
@@ -19,7 +22,6 @@ use Koramit\LaravelLINEBot\Enums\LINEEventType;
  * @property \Illuminate\Support\Carbon|null $processed_at
  * @property \Illuminate\Support\Carbon|null $created_at
  * @property \Illuminate\Support\Carbon|null $updated_at
- *
  * @method static \Illuminate\Database\Eloquent\Builder<static>|LINEBotChatLog fromMessageId(string $messageId, ?int $lineProfileId = null)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|LINEBotChatLog fromReplyToken(string $replyToken, ?int $lineProfileId = null)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|LINEBotChatLog newModelQuery()
@@ -35,7 +37,7 @@ use Koramit\LaravelLINEBot\Enums\LINEEventType;
  * @method static \Illuminate\Database\Eloquent\Builder<static>|LINEBotChatLog whereType($value)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|LINEBotChatLog whereUpdatedAt($value)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|LINEBotChatLog whereWebhookEventId($value)
- *
+ * @property-read \Koramit\LaravelLINEBot\Models\LINEUserProfile|null $lineProfile
  * @mixin \Eloquent
  */
 class LINEBotChatLog extends Model
@@ -49,6 +51,11 @@ class LINEBotChatLog extends Model
             'payload' => AsArrayObject::class,
             'processed_at' => 'datetime',
         ];
+    }
+
+    public function lineProfile(): BelongsTo
+    {
+        return $this->belongsTo(LINEUserProfile::class);
     }
 
     public function scopeFromMessageId(Builder $query, string $messageId, ?int $lineProfileId = null): void
