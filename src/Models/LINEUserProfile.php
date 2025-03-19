@@ -14,8 +14,6 @@ use Illuminate\Support\Str;
 use Random\RandomException;
 
 /**
- * 
- *
  * @property int $id
  * @property string|null $verify_code
  * @property Carbon|null $verified_at
@@ -27,6 +25,7 @@ use Random\RandomException;
  * @property Carbon|null $updated_at
  * @property-read bool $connected
  * @property-read string|null $display_name
+ *
  * @method static Builder<static>|LINEUserProfile fromPendingVerifyCode(string $verifyCode)
  * @method static Builder<static>|LINEUserProfile newModelQuery()
  * @method static Builder<static>|LINEUserProfile newQuery()
@@ -40,8 +39,10 @@ use Random\RandomException;
  * @method static Builder<static>|LINEUserProfile whereUserId($value)
  * @method static Builder<static>|LINEUserProfile whereVerifiedAt($value)
  * @method static Builder<static>|LINEUserProfile whereVerifyCode($value)
+ *
  * @property-read \Illuminate\Database\Eloquent\Collection<int, \Koramit\LaravelLINEBot\Models\LINEBotChatLog> $chatLogs
  * @property-read int|null $chat_logs_count
+ *
  * @mixin \Eloquent
  */
 class LINEUserProfile extends Model
@@ -59,7 +60,7 @@ class LINEUserProfile extends Model
 
     public function chatLogs(): HasMany
     {
-        return $this->hasMany(LINEBotChatLog::class);
+        return $this->hasMany(LINEBotChatLog::class, 'line_user_profile_id', 'id');
     }
 
     protected function connected(): Attribute
