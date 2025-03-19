@@ -14,6 +14,7 @@ use Koramit\LaravelLINEBot\Enums\LINEEventType;
  * @property string|null $request_id
  * @property int $request_status
  * @property int $line_user_profile_id
+ * @property int $user_id
  * @property \ArrayObject<array-key, mixed> $payload
  * @property \Illuminate\Support\Carbon|null $processed_at
  * @property \Illuminate\Support\Carbon|null $created_at

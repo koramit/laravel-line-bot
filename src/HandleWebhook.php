@@ -46,6 +46,7 @@ class HandleWebhook
             $log->type = $dto->eventType;
             $log->webhook_event_id = $dto->webhookEventId;
             $log->line_user_profile_id = $profile->id;
+            $log->user_id = $profile->user_id;
             $log->payload = $event;
             $log->save();
 
