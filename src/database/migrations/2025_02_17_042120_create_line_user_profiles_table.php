@@ -16,7 +16,7 @@ return new class extends Migration
             $table->string('verify_code', config('line.verify_code_length', 4))->nullable();
             $table->dateTime('verified_at')->nullable();
             $table->string('line_user_id', 33)->unique();
-            $table->string('profile', 1024)->nullable();
+            $table->string('profile', 2048)->nullable();
             $table->unsignedBigInteger('user_id')->nullable()->index();
             $table->foreign('user_id')->references('id')->on('users');
             $table->dateTime('unfollowed_at')->nullable();
