@@ -177,8 +177,22 @@ class LINEMessagingAPI
     protected function mergeRequestResponseToSentMessages(LINEMessageObject $messageObject, LINEMessagingAPIResponseDto $response): array
     {
         $payload = $messageObject->get();
-        foreach ($response->data['sentMessages'] as $index => $sentMessage) {
-            $payload[$index]['sentMessage'] = $sentMessage;
+        try {
+            foreach ($response->data['sentMessages'] as $index => $sentMessage) {
+                $payload[$index]['sentMessage'] = $sentMessage;
+            }
+        } catch (Exception $e) {
+            Log::error('LINEMessagingAPI@mergeRequestResponseToSentMessages : '.$e->getMessage());
+            $errorPayload = [];
+            foreach ($payload as $message) {
+                $message['sentMessage'] = [
+                    'id' => null,
+                    'quoteToken' => null,
+                ];
+                $errorPayload[] = $message;
+            }
+
+            return $errorPayload;
         }
 
         return $payload;
