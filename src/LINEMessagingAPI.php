@@ -117,7 +117,8 @@ class LINEMessagingAPI
         return new LINEMessagingAPIResponseDto(
             $response->status(),
             $response->header('X-Line-Request-Id'),
-            $response->json()
+            $response->json(),
+            $response->body(),
         );
     }
 
