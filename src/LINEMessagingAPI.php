@@ -153,24 +153,12 @@ class LINEMessagingAPI
 
     public function logReplyOrPush(string $webhookEventId, LINEUserProfile $profile, LINEMessageObject $messageObject, LINEMessagingAPIResponseDto $response): void
     {
+        $this->logReply($webhookEventId, $profile, $messageObject, $response);
         if ($this->lastCall === 'reply') {
-            $this->logReply($webhookEventId, $profile, $messageObject, $response);
             $this->lastCall = '';
 
             return;
         }
-
-        LINEBotChatLog::query()
-            ->create([
-                'line_user_profile_id' => $profile->id,
-                'user_id' => $profile->user_id,
-                'type' => LINEEventType::REPLY,
-                'webhook_event_id' => $webhookEventId,
-                'request_id' => null,
-                'request_status' => 400,
-                'processed_at' => now(),
-                'payload' => $messageObject->get(),
-            ]);
 
         $this->logPush($profile, $messageObject, $response);
     }
@@ -178,22 +166,15 @@ class LINEMessagingAPI
     protected function mergeRequestResponseToSentMessages(LINEMessageObject $messageObject, LINEMessagingAPIResponseDto $response): array
     {
         $payload = $messageObject->get();
-        try {
-            foreach ($response->data['sentMessages'] as $index => $sentMessage) {
-                $payload[$index]['sentMessage'] = $sentMessage;
-            }
-        } catch (Exception $e) {
-            Log::error('LINEMessagingAPI@mergeRequestResponseToSentMessages : '.$e->getMessage());
-            $errorPayload = [];
-            foreach ($payload as $message) {
-                $message['sentMessage'] = [
-                    'id' => null,
-                    'quoteToken' => null,
-                ];
-                $errorPayload[] = $message;
-            }
+        $sentMessages = $response->data['sentMessages'] ?? null;
+        if (! $sentMessages) {
+            $payload[] = ['errors' => $response->data];
 
-            return $errorPayload;
+            return $payload;
+        }
+
+        foreach ($sentMessages as $index => $sentMessage) {
+            $payload[$index]['sentMessage'] = $sentMessage;
         }
 
         return $payload;
