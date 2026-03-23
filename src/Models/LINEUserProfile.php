@@ -5,6 +5,7 @@ namespace Koramit\LaravelLINEBot\Models;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Casts\AsEncryptedArrayObject;
 use Illuminate\Database\Eloquent\Casts\Attribute;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Carbon;
@@ -40,7 +41,7 @@ use Random\RandomException;
  * @method static Builder<static>|LINEUserProfile whereVerifiedAt($value)
  * @method static Builder<static>|LINEUserProfile whereVerifyCode($value)
  *
- * @property-read \Illuminate\Database\Eloquent\Collection<int, \Koramit\LaravelLINEBot\Models\LINEBotChatLog> $chatLogs
+ * @property-read Collection<int, LINEBotChatLog> $chatLogs
  * @property-read int|null $chat_logs_count
  *
  * @mixin \Eloquent

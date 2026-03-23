@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Casts\AsArrayObject;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Carbon;
 use Koramit\LaravelLINEBot\Enums\LINEEventType;
 
 /**
@@ -17,9 +18,9 @@ use Koramit\LaravelLINEBot\Enums\LINEEventType;
  * @property int $line_user_profile_id
  * @property int $user_id
  * @property \ArrayObject<array-key, mixed> $payload
- * @property \Illuminate\Support\Carbon|null $processed_at
- * @property \Illuminate\Support\Carbon|null $created_at
- * @property \Illuminate\Support\Carbon|null $updated_at
+ * @property Carbon|null $processed_at
+ * @property Carbon|null $created_at
+ * @property Carbon|null $updated_at
  *
  * @method static \Illuminate\Database\Eloquent\Builder<static>|LINEBotChatLog fromMessageId(string $messageId, ?int $lineProfileId = null)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|LINEBotChatLog fromReplyToken(string $replyToken, ?int $lineProfileId = null)
@@ -37,7 +38,7 @@ use Koramit\LaravelLINEBot\Enums\LINEEventType;
  * @method static \Illuminate\Database\Eloquent\Builder<static>|LINEBotChatLog whereUpdatedAt($value)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|LINEBotChatLog whereWebhookEventId($value)
  *
- * @property-read \Koramit\LaravelLINEBot\Models\LINEUserProfile|null $lineProfile
+ * @property-read LINEUserProfile|null $lineProfile
  *
  * @mixin \Eloquent
  */
