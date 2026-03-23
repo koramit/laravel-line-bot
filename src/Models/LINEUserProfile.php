@@ -112,7 +112,7 @@ class LINEUserProfile extends Model
         $profile = $response->json();
 
         $this->profile = [
-            'display_name' => $profile['displayName'],
+            'display_name' => $profile['displayName'] ?? null,
             'language' => $profile['language'] ?? null,
             'picture_url' => $profile['pictureUrl'] ?? null,
             'status_message' => $profile['statusMessage'] ?? null,
