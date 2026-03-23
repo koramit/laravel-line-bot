@@ -66,6 +66,13 @@ class LINEMessageObject
             throw new InvalidSubstitutionKeyException;
         }
 
+        $openCurlyBracketTemp = Str::random();
+        $closeCurlyBracketTemp = Str::random();
+        $text = Str::of($text)
+            ->replace('{{', $openCurlyBracketTemp)
+            ->replace('}}', $closeCurlyBracketTemp)
+            ->toString();
+
         $substitution = [];
         $offset = 0;
         foreach ($substitutions as $sub) {
@@ -83,6 +90,11 @@ class LINEMessageObject
             $substitution[$key] = $sub->toSubstitution();
             $offset = $keyEndPos;
         }
+
+        $text = Str::of($text)
+            ->replace($openCurlyBracketTemp, '{{')
+            ->replace($closeCurlyBracketTemp, '}}')
+            ->toString();
 
         $payload = [
             'type' => 'textV2',
